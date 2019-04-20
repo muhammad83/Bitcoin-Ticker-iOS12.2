@@ -7,11 +7,14 @@
 //
 
 import UIKit
+import Alamofire
+import SwiftyJSON
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, UIPickerViewDataSource, UIPickerViewDelegate {
     
     let baseURL = "https://apiv2.bitcoinaverage.com/indices/global/ticker/BTC"
     let currencyArray = ["AUD", "BRL","CAD","CNY","EUR","GBP","HKD","IDR","ILS","INR","JPY","MXN","NOK","NZD","PLN","RON","RUB","SEK","SGD","USD","ZAR"]
+	let currenySymbol = ["$", "R$", "$", "¥", "€", "£", "$", "Rp", "₪", "₹", "¥", "$", "kr", "$", "zł", "lei", "₽", "kr", "$", "$", "R"]
     var finalURL = ""
 
     //Pre-setup IBOutlets
@@ -22,64 +25,57 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-       
+       	currencyPicker.delegate = self
+		currencyPicker.dataSource = self
     }
 
+	func numberOfComponents(in pickerView: UIPickerView) -> Int {
+		return 1
+	}
     
-    //TODO: Place your 3 UIPickerView delegate methods here
-    
-    
-    
+	func pickerView(_ pickerView: UIPickerView,  numberOfRowsInComponent compenent: Int) -> Int {
+		return currencyArray.count
+	}
 
-    
-    
-    
-//    
-//    //MARK: - Networking
-//    /***************************************************************/
-//    
-//    func getWeatherData(url: String, parameters: [String : String]) {
-//        
-//        Alamofire.request(url, method: .get, parameters: parameters)
-//            .responseJSON { response in
-//                if response.result.isSuccess {
-//
-//                    print("Sucess! Got the weather data")
-//                    let weatherJSON : JSON = JSON(response.result.value!)
-//
-//                    self.updateWeatherData(json: weatherJSON)
-//
-//                } else {
-//                    print("Error: \(String(describing: response.result.error))")
-//                    self.bitcoinPriceLabel.text = "Connection Issues"
-//                }
-//            }
-//
-//    }
-//
-//    
-//    
-//    
-//    
-//    //MARK: - JSON Parsing
-//    /***************************************************************/
-//    
-//    func updateWeatherData(json : JSON) {
-//        
-//        if let tempResult = json["main"]["temp"].double {
-//        
-//        weatherData.temperature = Int(round(tempResult!) - 273.15)
-//        weatherData.city = json["name"].stringValue
-//        weatherData.condition = json["weather"][0]["id"].intValue
-//        weatherData.weatherIconName =    weatherData.updateWeatherIcon(condition: weatherData.condition)
-//        }
-//        
-//        updateUIWithWeatherData()
-//    }
-//    
+	func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+		return currencyArray[row]
+	}
 
+	func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+		print(currencyArray[row])
 
+		finalURL = baseURL + currencyArray[row]
 
+		print(finalURL)
+		getBitcoinData(url: finalURL, symbol: currenySymbol[row])
+	}
 
+    //MARK: - Networking
+    /***************************************************************/
+
+	func getBitcoinData(url: String, symbol: String) {
+		var askPrice = ""
+        Alamofire.request(url, method: .get)
+            .responseJSON { response in
+                if response.result.isSuccess {
+                    let bitcoinJSON : JSON = JSON(response.result.value!)
+                    askPrice = symbol + self.updateBitcoinData(json: bitcoinJSON)
+                } else {
+                    print("Error: \(String(describing: response.result.error))")
+                }
+				self.bitcoinPriceLabel.text = askPrice
+            }
+    }
+
+    //MARK: - JSON Parsing
+    /***************************************************************/
+
+    func updateBitcoinData(json : JSON) -> String{
+		var returnStatement = "Connection Issues"
+        if let tempResult = json["ask"].double {
+			returnStatement = String(tempResult)
+        }
+		return returnStatement
+	}
 }
 
